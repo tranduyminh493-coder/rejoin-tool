@@ -16,7 +16,7 @@ def get_script_dir():
 # ==========================================================
 # CẤU HÌNH AUTO UPDATE
 # ==========================================================
-CURRENT_VERSION = "1.1"
+CURRENT_VERSION = "1.1.1"
 REPO_ROOT = "https://raw.githubusercontent.com/tranduyminh493-coder/rejoin-tool/refs/heads/main"
 VERSION_URL = f"{REPO_ROOT}/version.txt"
 CODE_URL    = f"{REPO_ROOT}/autorejoin.py"
@@ -144,6 +144,7 @@ if not COOKIE_CUA_BAN or not PLACE_ID:
     sys.exit(1)
 
 count_rejoin = 0
+last_rejoin_time = 0
 start_time = datetime.now()
 
 def hien_thi_bang(trang_thai):
@@ -220,7 +221,7 @@ def bypass_launch():
     os.system("taskkill /F /IM RobloxPlayerBeta.exe /T >nul 2>&1")
     time.sleep(2)
 
-    global count_rejoin
+    global count_rejoin, last_rejoin_time
     clean_cookie = re.sub(r'\s+', '', COOKIE_CUA_BAN)
     session = requests.Session()
     session.cookies.set(".ROBLOSECURITY", clean_cookie, domain="roblox.com")
@@ -249,6 +250,7 @@ def bypass_launch():
             launch_cmd = f"roblox-player:1+launchmode:play+gameinfo:{ticket}+launchtime:{int(time.time()*1000)}+placelauncherurl:https%3A%2F%2Fassetgame.roblox.com%2Fgame%2FPlaceLauncher.ashx%3Frequest%3DPlugin%26placeId%3D{PLACE_ID}%26linkCode%3D{VIP_CODE}"
             os.system(f'start "" "{launch_cmd}"')
             count_rejoin += 1
+            last_rejoin_time = time.time()
             hien_thi_bang(f"Rejoin Success #{count_rejoin}!")
             return True
         else:
@@ -460,6 +462,15 @@ if __name__ == "__main__":
                     need_rejoin = True
             
             if need_rejoin:
+                # Session Locked Protection (Error 267)
+                # Nếu bị kick liên tục trong thời gian ngắn, server cần thời gian để xóa session cũ.
+                if last_rejoin_time > 0 and (current_time - last_rejoin_time) < 120:
+                    wait_time = 120 - int(current_time - last_rejoin_time)
+                    if wait_time > 5: # Chỉ wait nếu thời gian còn lại đáng kể
+                        for w in range(wait_time, 0, -1):
+                            hien_thi_bang(f"Session Locked Fix: Waiting {w}s to clear old session...")
+                            time.sleep(1)
+
                 if bypass_launch():
                     count_seconds = 45 
                     for i in range(count_seconds, 0, -1):
